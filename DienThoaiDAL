@@ -1,0 +1,54 @@
+using DAL.Models;
+using System.Collections.Generic;
+using System.Data.Entity; // Cần 'using' này
+using System.Linq;
+
+namespace DAL
+{
+    public class DienThoaiDAL
+    {
+        private QLDienThoaiDbContext db = new QLDienThoaiDbContext();
+
+        // Lấy tất cả điện thoại (kèm thông tin Hãng và Loại)
+        public List<DienThoai> GetAll()
+        {
+            // Dùng Include để lấy thông tin Hãng và Loại (giống JOIN)
+            return db.DienThoais
+                     .Include(dt => dt.HangSanXuat) // Lấy HangSanXuat
+                     .Include(dt => dt.LoaiDienThoai) // Lấy LoaiDienThoai
+                     .ToList();
+        }
+
+        // Lấy điện thoại theo IdDienThoai (Khóa chính)
+        public DienThoai GetById(int id)
+        {
+            // Cũng nên Include nếu cần hiển thị chi tiết Hãng/Loại
+            return db.DienThoais
+                     .Include(dt => dt.HangSanXuat)
+                     .Include(dt => dt.LoaiDienThoai)
+                     .FirstOrDefault(dt => dt.IdDienThoai == id);
+        }
+
+        // Thêm điện thoại mới
+        public void Add(DienThoai dt)
+        {
+            db.DienThoais.Add(dt);
+            db.SaveChanges();
+        }
+
+        // Cập nhật thông tin điện thoại
+        public void Update(DienThoai dt)
+        {
+            db.Entry(dt).State = EntityState.Modified;
+            db.SaveChanges();
+        }
+
+        // Xóa điện thoại
+        public void Delete(DienThoai dt)
+        {
+            db.DienThoais.Attach(dt);
+            db.DienThoais.Remove(dt);
+            db.SaveChanges();
+        }
+    }
+}
