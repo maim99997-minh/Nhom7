@@ -1,0 +1,115 @@
+using DAL;
+using DAL.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BUS
+{
+    public class DonHangBUS
+    {
+        private DonHangDAL dal = new DonHangDAL();
+        // Thêm DAL của Điện thoại để kiểm tra tồn kho (nếu cần)
+        // private DienThoaiDAL dalDienThoai = new DienThoaiDAL();
+
+        public List<DonHang> GetAll()
+        {
+            return dal.GetAll();
+        }
+
+        // Hàm này dùng khi khách hàng đặt hàng (ví dụ từ form giỏ hàng)
+        public string CreateDonHang(DonHang dh)
+        {
+            // --- Kiểm tra đầu vào ---
+            if (string.IsNullOrEmpty(dh.TenTaiKhoan))
+                return "Thiếu thông tin người đặt!";
+            if (dh.ChiTietDonHangs == null || !dh.ChiTietDonHangs.Any())
+                return "Đơn hàng phải có ít nhất 1 sản phẩm!";
+
+            // --- Xử lý Logic Nghiệp vụ ---
+            try
+            {
+                dh.NgayTao = DateTime.Now; // Gán ngày tạo
+                dh.TrangThai = "Chờ xử lý"; // Trạng thái ban đầu
+
+                // === BỔ SUNG: Tính Tổng Tiền ===
+                dh.TongTien = 0; // Khởi tạo
+                foreach (var ct in dh.ChiTietDonHangs)
+                {
+                    // Kiểm tra null trước khi tính
+                    if (ct.SoLuongDat != null && ct.DonGia != null)
+                    {
+                        dh.TongTien += (ct.SoLuongDat.Value * ct.DonGia.Value);
+                    }
+                    else
+                    {
+                        // Nếu thiếu thông tin chi tiết -> Báo lỗi
+                        return "Lỗi dữ liệu: Chi tiết đơn hàng thiếu số lượng hoặc đơn giá.";
+                    }
+                }
+                // ==============================
+
+                // (Tùy chọn: Thêm logic kiểm tra tồn kho ở đây)
+                // foreach (var ct in dh.ChiTietDonHangs)
+                // {
+                //    var sanPham = dalDienThoai.GetById(ct.IdDienThoai);
+                //    if (sanPham == null || sanPham.SoLuongTon < ct.SoLuongDat)
+                //        return $"Sản phẩm '{sanPham?.TenDienThoai}' không đủ số lượng tồn.";
+                // }
+
+                // --- Gọi DAL để lưu ---
+                dal.Add(dh);
+
+                // (Tùy chọn: Thêm logic trừ tồn kho sau khi lưu thành công)
+
+                return "Tạo đơn hàng thành công!";
+            }
+            // === SỬA LẠI CATCH ĐỂ XEM LỖI CHI TIẾT ===
+            catch (Exception ex)
+            {
+                string errorMessage = ex.Message;
+                // Lấy lỗi cấp 2
+                if (ex.InnerException != null)
+                {
+                    errorMessage += "\nLỗi chi tiết (Cấp 2): " + ex.InnerException.Message;
+
+                    // === SỬA LẠI ĐỂ XEM LỖI CẤP 3 ===
+                    // Lấy lỗi cấp 3 (nếu có)
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        // Đây RẤT CÓ THỂ là lỗi gốc từ SQL Server
+                        errorMessage += "\nLỗi gốc (Cấp 3): " + ex.InnerException.InnerException.Message;
+                    }
+                    // ================================
+                }
+                return "Tạo đơn hàng thất bại: " + errorMessage;
+            }
+        }
+
+        // Hàm này dùng cho Admin cập nhật trạng thái đơn hàng
+        public string UpdateTrangThai(int idDonHang, string trangThaiMoi)
+        {
+            var dh = dal.GetById(idDonHang);
+            if (dh == null) return "Không tìm thấy đơn hàng!";
+            try
+            {
+                dh.TrangThai = trangThaiMoi;
+                dal.Update(dh); // Gọi hàm Update chỉ sửa Trạng thái
+                return "Cập nhật trạng thái thành công!";
+            }
+            catch (Exception ex) { return "Cập nhật trạng thái thất bại: " + ex.Message; }
+        }
+
+        public string Delete(int idDonHang)
+        {
+            var dh = dal.GetById(idDonHang);
+            if (dh == null) return "Không tìm thấy đơn hàng!";
+            try
+            {
+                dal.Delete(dh);
+                return "Xóa đơn hàng thành công!";
+            }
+            catch (Exception ex) { return "Xóa đơn hàng thất bại: " + ex.Message; }
+        }
+    }
+}
