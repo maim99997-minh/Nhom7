@@ -1,0 +1,46 @@
+using DAL.Models;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
+
+namespace DAL
+{
+    public class HangSanXuatDAL
+    {
+        private QLDienThoaiDbContext db = new QLDienThoaiDbContext();
+
+        // Lấy tất cả hãng sản xuất
+        public List<HangSanXuat> GetAll()
+        {
+            return db.HangSanXuats.ToList();
+        }
+
+        // Lấy hãng sản xuất theo Mã NSX (Khóa chính)
+        public HangSanXuat GetById(string maNSX)
+        {
+            return db.HangSanXuats.Find(maNSX);
+        }
+
+        // Thêm hãng sản xuất mới
+        public void Add(HangSanXuat nsx)
+        {
+            db.HangSanXuats.Add(nsx);
+            db.SaveChanges();
+        }
+
+        // Cập nhật thông tin hãng sản xuất
+        public void Update(HangSanXuat nsx)
+        {
+            db.Entry(nsx).State = EntityState.Modified;
+            db.SaveChanges();
+        }
+
+        // Xóa hãng sản xuất
+        public void Delete(HangSanXuat nsx)
+        {
+            db.HangSanXuats.Attach(nsx);
+            db.HangSanXuats.Remove(nsx);
+            db.SaveChanges();
+        }
+    }
+}
