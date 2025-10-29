@@ -1,0 +1,46 @@
+using DAL.Models;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
+
+namespace DAL
+{
+    public class LoaiDienThoaiDAL
+    {
+        private QLDienThoaiDbContext db = new QLDienThoaiDbContext();
+
+        // Lấy tất cả loại điện thoại
+        public List<LoaiDienThoai> GetAll()
+        {
+            return db.LoaiDienThoais.ToList();
+        }
+
+        // Lấy loại điện thoại theo IdLoai (Khóa chính)
+        public LoaiDienThoai GetById(int idLoai)
+        {
+            return db.LoaiDienThoais.Find(idLoai);
+        }
+
+        // Thêm loại điện thoại mới
+        public void Add(LoaiDienThoai loai)
+        {
+            db.LoaiDienThoais.Add(loai);
+            db.SaveChanges();
+        }
+
+        // Cập nhật thông tin loại điện thoại
+        public void Update(LoaiDienThoai loai)
+        {
+            db.Entry(loai).State = EntityState.Modified;
+            db.SaveChanges();
+        }
+
+        // Xóa loại điện thoại
+        public void Delete(LoaiDienThoai loai)
+        {
+            db.LoaiDienThoais.Attach(loai);
+            db.LoaiDienThoais.Remove(loai);
+            db.SaveChanges();
+        }
+    }
+}
