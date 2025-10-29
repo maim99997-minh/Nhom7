@@ -1,0 +1,97 @@
+using DAL.Models;
+using System.Collections.Generic; // <-- Thêm using này
+using System.Data.Entity;      // <-- Thêm using này
+using System.Linq;
+
+namespace DAL
+{
+    // Lớp này chứa TẤT CẢ các hàm truy cập bảng TaiKhoan
+    public class TaiKhoanDAL
+    {
+        // Khởi tạo DbContext dùng chung (có thể dùng using trong từng hàm cũng được)
+        private QLDienThoaiDbContext db = new QLDienThoaiDbContext();
+
+        // Hàm cho Đăng nhập (frmLogin)
+        public TaiKhoan GetByTenTKAndMatKhau(string tenTK, string matKhau)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext()) // Cách khác
+            {
+                return db.TaiKhoans.FirstOrDefault(tk =>
+                            tk.TenTaiKhoan == tenTK &&
+                            tk.MatKhau == matKhau);
+            }
+        }
+
+        // Hàm cho Đăng ký (Kiểm tra trùng Tên TK)
+        public TaiKhoan GetById(string tenTK)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                return db.TaiKhoans.Find(tenTK);
+            }
+        }
+
+        // Hàm cho Đăng ký (Kiểm tra trùng SĐT)
+        public TaiKhoan GetBySdt(string sdt)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                return db.TaiKhoans.FirstOrDefault(tk => tk.SoDienThoai == sdt);
+            }
+        }
+
+        // Hàm cho Đăng ký (Lưu)
+        public void Add(TaiKhoan taiKhoan)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                db.TaiKhoans.Add(taiKhoan);
+                db.SaveChanges();
+            }
+        }
+
+        // =======================================================
+        // === BỔ SUNG CÁC HÀM SAU CHO FRMKHACHHANG ===
+        // =======================================================
+
+        /// <summary>
+        /// Lấy danh sách tất cả các tài khoản là khách hàng (IsAdmin = false).
+        /// </summary>
+        public List<TaiKhoan> GetAllCustomers()
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                // Dùng Where để lọc và ToList để lấy danh sách
+                return db.TaiKhoans.Where(tk => tk.IsAdmin == false).ToList();
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật thông tin một tài khoản hiện có.
+        /// </summary>
+        public void Update(TaiKhoan taiKhoan)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                // Đánh dấu đối tượng là đã bị thay đổi
+                db.Entry(taiKhoan).State = EntityState.Modified;
+                db.SaveChanges(); // Lưu các thay đổi vào database
+            }
+        }
+
+        /// <summary>
+        /// Xóa một tài khoản khỏi database.
+        /// </summary>
+        public void Delete(TaiKhoan taiKhoan)
+        {
+            // using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                // Đính kèm đối tượng vào context trước khi xóa (nếu nó chưa được theo dõi)
+                db.TaiKhoans.Attach(taiKhoan);
+                // Đánh dấu đối tượng để xóa
+                db.TaiKhoans.Remove(taiKhoan);
+                db.SaveChanges(); // Lưu các thay đổi vào database
+            }
+        }
+    }
+}
