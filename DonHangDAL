@@ -1,0 +1,86 @@
+using DAL.Models;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
+
+namespace DAL
+{
+    public class DonHangDAL
+    {
+        private QLDienThoaiDbContext db = new QLDienThoaiDbContext();
+
+        // Lấy tất cả đơn hàng (kèm chi tiết và thông tin khách hàng)
+        public List<DonHang> GetAll()
+        {
+            return db.DonHangs
+                     .Include(dh => dh.TaiKhoan) // Lấy thông tin người đặt
+                     .Include(dh => dh.ChiTietDonHangs.Select(ct => ct.DienThoai)) // Lấy chi tiết và tên điện thoại
+                     .OrderByDescending(dh => dh.NgayTao) // Sắp xếp mới nhất trước
+                     .ToList();
+        }
+
+        // Lấy đơn hàng theo IdDonHang (Khóa chính)
+        public DonHang GetById(int id)
+        {
+            return db.DonHangs
+                     .Include(dh => dh.TaiKhoan)
+                     .Include(dh => dh.ChiTietDonHangs.Select(ct => ct.DienThoai))
+                     .FirstOrDefault(dh => dh.IdDonHang == id);
+        }
+
+        // Thêm đơn hàng mới (bao gồm cả chi tiết)
+        // Lưu ý: Hàm này phức tạp hơn vì cần thêm vào 2 bảng
+        public void Add(DonHang dh)
+        {
+            using (QLDienThoaiDbContext db = new QLDienThoaiDbContext())
+            {
+                // 1. Thêm DonHang (chưa có ID)
+                db.DonHangs.Add(dh);
+                // 2. LƯU lần 1 để lấy IdDonHang (nếu là identity)
+                db.SaveChanges(); // <-- Phải có SaveChanges() ở đây
+
+                // 3. Gán IdDonHang cho các ChiTiet
+                if (dh.ChiTietDonHangs != null && dh.ChiTietDonHangs.Any())
+                {
+                    foreach (var ct in dh.ChiTietDonHangs)
+                    {
+                        ct.IdDonHang = dh.IdDonHang;
+                        // Không cần Add chi tiết nếu nó đã được gắn vào DonHang trước đó
+                        // Chỉ cần đảm bảo EF đang theo dõi chúng
+                    }
+                    // 4. LƯU lần 2 để lưu các ChiTiet với IdDonHang đúng
+                    db.SaveChanges(); // <-- Phải có SaveChanges() lần nữa
+                }
+            }
+        }
+
+        // Cập nhật đơn hàng (Thường chỉ cập nhật Trạng thái)
+        public void Update(DonHang dh)
+        {
+            // Chỉ cập nhật thông tin của DonHang, không cập nhật chi tiết
+            var donHangInDb = db.DonHangs.Find(dh.IdDonHang);
+            if (donHangInDb != null)
+            {
+                donHangInDb.TrangThai = dh.TrangThai;
+                donHangInDb.DiaChiGiaoHang = dh.DiaChiGiaoHang;
+                // Cập nhật các trường khác nếu cần
+                db.Entry(donHangInDb).State = EntityState.Modified;
+                db.SaveChanges();
+            }
+        }
+
+        // Xóa đơn hàng (và các chi tiết liên quan - EF thường tự xử lý nếu cấu hình đúng)
+        public void Delete(DonHang dh)
+        {
+            // Xóa ChiTietDonHang trước
+            var chiTiet = db.ChiTietDonHangs.Where(ct => ct.IdDonHang == dh.IdDonHang).ToList();
+            db.ChiTietDonHangs.RemoveRange(chiTiet);
+
+            // Sau đó xóa DonHang
+            db.DonHangs.Attach(dh);
+            db.DonHangs.Remove(dh);
+
+            db.SaveChanges();
+        }
+    }
+}
