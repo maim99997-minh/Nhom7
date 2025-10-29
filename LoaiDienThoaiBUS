@@ -1,0 +1,120 @@
+using DAL;
+using DAL.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq; // Cần Linq để kiểm tra tên trùng
+
+namespace BUS
+{
+    public class LoaiDienThoaiBUS
+    {
+        // Khởi tạo lớp DAL
+        private LoaiDienThoaiDAL dal = new LoaiDienThoaiDAL();
+
+        /// <summary>
+        /// Lấy tất cả các loại điện thoại.
+        /// </summary>
+        /// <returns>Danh sách các loại điện thoại.</returns>
+        public List<LoaiDienThoai> GetAll()
+        {
+            return dal.GetAll();
+        }
+
+        /// <summary>
+        /// Thêm một loại điện thoại mới.
+        /// </summary>
+        /// <param name="loai">Đối tượng LoaiDienThoai chứa thông tin cần thêm.</param>
+        /// <returns>Thông báo kết quả.</returns>
+        public string Add(LoaiDienThoai loai)
+        {
+            // --- Logic nghiệp vụ (Validation) ---
+            if (string.IsNullOrWhiteSpace(loai.TenLoai))
+            {
+                return "Tên loại không được để trống!";
+            }
+
+            // Kiểm tra xem tên loại đã tồn tại chưa (không phân biệt hoa thường)
+            var existingLoai = dal.GetAll().FirstOrDefault(l => l.TenLoai.Equals(loai.TenLoai, StringComparison.OrdinalIgnoreCase));
+            if (existingLoai != null)
+            {
+                return "Tên loại này đã tồn tại!";
+            }
+
+            try
+            {
+                dal.Add(loai);
+                return "Thêm loại điện thoại thành công!";
+            }
+            catch (Exception ex)
+            {
+                return "Thêm thất bại: " + ex.Message;
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật thông tin một loại điện thoại.
+        /// </summary>
+        /// <param name="loai">Đối tượng LoaiDienThoai chứa thông tin cập nhật.</param>
+        /// <returns>Thông báo kết quả.</returns>
+        public string Update(LoaiDienThoai loai)
+        {
+            if (string.IsNullOrWhiteSpace(loai.TenLoai))
+            {
+                return "Tên loại không được để trống!";
+            }
+
+            // Lấy đối tượng cũ từ DB bằng ID
+            var loaiCu = dal.GetById(loai.IdLoai);
+            if (loaiCu == null)
+            {
+                return "Không tìm thấy loại điện thoại để cập nhật!";
+            }
+
+            // Kiểm tra tên trùng (nếu tên bị thay đổi và trùng với tên khác)
+            var existingLoai = dal.GetAll().FirstOrDefault(l => l.TenLoai.Equals(loai.TenLoai, StringComparison.OrdinalIgnoreCase) && l.IdLoai != loai.IdLoai);
+            if (existingLoai != null)
+            {
+                return "Tên loại này đã tồn tại!";
+            }
+
+            try
+            {
+                // Cập nhật thông tin vào đối tượng cũ
+                loaiCu.TenLoai = loai.TenLoai;
+                loaiCu.MoTa = loai.MoTa;
+
+                dal.Update(loaiCu); // Gọi DAL để lưu
+                return "Cập nhật thành công!";
+            }
+            catch (Exception ex)
+            {
+                return "Cập nhật thất bại: " + ex.Message;
+            }
+        }
+
+        /// <summary>
+        /// Xóa một loại điện thoại theo ID.
+        /// </summary>
+        /// <param name="idLoai">ID của loại điện thoại cần xóa.</param>
+        /// <returns>Thông báo kết quả.</returns>
+        public string Delete(int idLoai)
+        {
+            var loaiCanXoa = dal.GetById(idLoai);
+            if (loaiCanXoa == null)
+            {
+                return "Không tìm thấy loại điện thoại!";
+            }
+
+            try
+            {
+                dal.Delete(loaiCanXoa);
+                return "Xóa thành công!";
+            }
+            catch (Exception ex)
+            {
+                // Lỗi này thường do khóa ngoại (đã có điện thoại thuộc loại này)
+                return "Xóa thất bại! Đã có sản phẩm thuộc loại này.";
+            }
+        }
+    }
+}
