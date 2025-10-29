@@ -1,0 +1,57 @@
+using DAL;
+using DAL.Models;
+using System;
+using System.Collections.Generic;
+
+namespace BUS
+{
+    public class HangSanXuatBUS
+    {
+        private HangSanXuatDAL dal = new HangSanXuatDAL();
+
+        public List<HangSanXuat> GetAll()
+        {
+            return dal.GetAll();
+        }
+
+        public string Add(HangSanXuat nsx)
+        {
+            if (string.IsNullOrEmpty(nsx.MaNSX) || string.IsNullOrEmpty(nsx.TenNSX))
+                return "Mã và Tên Nhà sản xuất không được để trống!";
+            if (dal.GetById(nsx.MaNSX) != null)
+                return "Mã nhà sản xuất đã tồn tại!";
+            try
+            {
+                dal.Add(nsx);
+                return "Thêm thành công!";
+            }
+            catch (Exception ex) { return "Thêm thất bại: " + ex.Message; }
+        }
+
+        public string Update(HangSanXuat nsx)
+        {
+            if (string.IsNullOrEmpty(nsx.TenNSX))
+                return "Tên nhà sản xuất không được để trống!";
+            if (dal.GetById(nsx.MaNSX) == null)
+                return "Không tìm thấy nhà sản xuất!";
+            try
+            {
+                dal.Update(nsx);
+                return "Cập nhật thành công!";
+            }
+            catch (Exception ex) { return "Cập nhật thất bại: " + ex.Message; }
+        }
+
+        public string Delete(string maNSX)
+        {
+            var nsx = dal.GetById(maNSX);
+            if (nsx == null) return "Không tìm thấy nhà sản xuất!";
+            try
+            {
+                dal.Delete(nsx);
+                return "Xóa thành công!";
+            }
+            catch (Exception ex) { return "Xóa thất bại! Đã có sản phẩm thuộc hãng này."; }
+        }
+    }
+}
