@@ -1,0 +1,98 @@
+using DAL;
+using DAL.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BUS
+{
+    // Lớp BUS này chỉ tập trung vào nghiệp vụ Khách Hàng
+    public class KhachHangBUS
+    {
+        private TaiKhoanDAL dal = new TaiKhoanDAL();
+
+        // Lấy danh sách khách hàng cho DataGridView
+        public List<TaiKhoan> GetAllCustomers()
+        {
+            return dal.GetAllCustomers();
+        }
+
+        // Hàm Thêm Khách Hàng (GUI sẽ gọi)
+        // Lưu ý: Khách hàng dùng TenTaiKhoan làm khóa chính
+        public string AddCustomer(TaiKhoan kh)
+        {
+            // --- Logic Validation ---
+            if (string.IsNullOrWhiteSpace(kh.TenTaiKhoan)) return "Tên tài khoản (Mã KH) không được trống!";
+            if (string.IsNullOrWhiteSpace(kh.HoTen)) return "Tên khách hàng không được trống!";
+            if (string.IsNullOrWhiteSpace(kh.SoDienThoai)) return "Số điện thoại không được trống!";
+            // Thêm kiểm tra định dạng SĐT nếu cần...
+
+            // Kiểm tra trùng Tên Tài Khoản
+            if (dal.GetById(kh.TenTaiKhoan) != null)
+                return "Tên tài khoản (Mã KH) đã tồn tại!";
+
+            // Kiểm tra trùng SĐT
+            if (dal.GetBySdt(kh.SoDienThoai) != null)
+                return "Số điện thoại này đã được đăng ký!";
+
+            try
+            {
+                kh.IsAdmin = false; // Đảm bảo luôn là khách hàng
+                // Nếu không nhập mật khẩu, gán mặc định (ví dụ)
+                if (string.IsNullOrEmpty(kh.MatKhau)) kh.MatKhau = "123";
+                dal.Add(kh);
+                return "Thêm khách hàng thành công!";
+            }
+            catch (Exception ex) { return "Thêm thất bại: " + ex.Message; }
+        }
+
+        // Hàm Sửa Khách Hàng
+        public string UpdateCustomer(TaiKhoan kh)
+        {
+            if (string.IsNullOrWhiteSpace(kh.HoTen)) return "Tên khách hàng không được trống!";
+            if (string.IsNullOrWhiteSpace(kh.SoDienThoai)) return "Số điện thoại không được trống!";
+
+            var khCu = dal.GetById(kh.TenTaiKhoan);
+            if (khCu == null) return "Không tìm thấy khách hàng!";
+
+            // Kiểm tra SĐT trùng (nếu SĐT thay đổi và trùng với người khác)
+            if (khCu.SoDienThoai != kh.SoDienThoai && dal.GetBySdt(kh.SoDienThoai) != null)
+            {
+                return "Số điện thoại này đã thuộc về người khác!";
+            }
+
+            try
+            {
+                khCu.HoTen = kh.HoTen;
+                khCu.SoDienThoai = kh.SoDienThoai;
+                khCu.Email = kh.Email;
+                khCu.DiaChi = kh.DiaChi;
+                // Không cho sửa IsAdmin ở form này
+                // Có thể cho sửa mật khẩu nếu có ô nhập
+
+                dal.Update(khCu);
+                return "Cập nhật thành công!";
+            }
+            catch (Exception ex) { return "Cập nhật thất bại: " + ex.Message; }
+        }
+
+        // Hàm Xóa Khách Hàng
+        public string DeleteCustomer(string tenTaiKhoan)
+        {
+            var kh = dal.GetById(tenTaiKhoan);
+            if (kh == null) return "Không tìm thấy khách hàng!";
+            if (kh.IsAdmin) return "Không thể xóa tài khoản Admin ở đây!"; // Ngăn xóa nhầm Admin
+
+            try
+            {
+                dal.Delete(kh);
+                return "Xóa khách hàng thành công!";
+            }
+            catch (Exception ex)
+            {
+                // Lỗi khóa ngoại (khách hàng đã có Đơn Hàng)
+                return "Xóa thất bại! Khách hàng này đã có đơn hàng.";
+            }
+        }
+    }
+}
