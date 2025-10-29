@@ -1,0 +1,88 @@
+using DAL;
+using DAL.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BUS
+{
+    public class DienThoaiBUS
+    {
+        private DienThoaiDAL dal = new DienThoaiDAL();
+
+        public List<DienThoai> GetAll()
+        {
+            return dal.GetAll();
+        }
+
+        public string Add(DienThoai dt)
+        {
+            if (string.IsNullOrEmpty(dt.TenDienThoai)) return "Tên điện thoại không được trống!";
+            if (dt.GiaBan <= 0) return "Giá bán phải lớn hơn 0!";
+            if (string.IsNullOrEmpty(dt.MaNSX)) return "Vui lòng chọn Hãng sản xuất!";
+            // if (dt.IdLoai == null || dt.IdLoai <= 0) return "Vui lòng chọn Loại điện thoại!";
+
+            try
+            {
+                dal.Add(dt);
+                return "Thêm sản phẩm thành công!";
+            }
+            catch (Exception ex) { return "Thêm thất bại: " + ex.Message; }
+        }
+
+        public string Update(DienThoai dt)
+        {
+            if (string.IsNullOrEmpty(dt.TenDienThoai)) return "Tên điện thoại không được trống!";
+            var dtCu = dal.GetById(dt.IdDienThoai); // Dùng ID để lấy đối tượng cũ
+            if (dtCu == null) return "Không tìm thấy sản phẩm!";
+
+            try
+            {
+                // Chỉ cập nhật các thuộc tính cần thiết từ đối tượng dt vào dtCu
+                dtCu.TenDienThoai = dt.TenDienThoai;
+                dtCu.MoTa = dt.MoTa;
+                dtCu.SoLuongTon = dt.SoLuongTon;
+                dtCu.UrlHinhAnh = dt.UrlHinhAnh;
+                dtCu.GiaBan = dt.GiaBan;
+                dtCu.IdLoai = dt.IdLoai;
+                dtCu.MaNSX = dt.MaNSX;
+
+                dal.Update(dtCu); // Truyền đối tượng đã được cập nhật vào DAL
+                return "Cập nhật thành công!";
+            }
+            catch (Exception ex) { return "Cập nhật thất bại: " + ex.Message; }
+        }
+
+        public List<DienThoai> SearchProducts(string keyword)
+        {
+            // Lấy danh sách gốc (đã bao gồm Hãng và Loại)
+            var allProducts = dal.GetAll();
+
+            // Nếu không có từ khóa, trả về tất cả
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return allProducts;
+            }
+
+            // Chuyển từ khóa về chữ thường để tìm kiếm không phân biệt hoa thường
+            string lowerKeyword = keyword.ToLower().Trim();
+
+            // Dùng LINQ để lọc theo Tên Điện thoại
+            return allProducts
+                .Where(dt => dt.TenDienThoai.ToLower().Contains(lowerKeyword))
+                .ToList();
+        }
+
+        public string Delete(int id)
+        {
+            var dt = dal.GetById(id);
+            if (dt == null) return "Không tìm thấy sản phẩm!";
+            try
+            {
+                dal.Delete(dt);
+                return "Xóa thành công!";
+            }
+            catch (Exception ex) { return "Xóa thất bại! Sản phẩm đã có trong đơn hàng."; }
+        }
+    }
+}
