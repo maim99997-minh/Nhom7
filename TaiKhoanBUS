@@ -1,0 +1,61 @@
+using DAL.Models;
+using DAL; // <- Phải using DAL
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BUS
+{
+    public class TaiKhoanBUS
+    {
+        // === SỬA LỖI 1: Khai báo đúng 2 lớp DAL ===
+        private TaiKhoanDAL dal_Login = new TaiKhoanDAL();
+        private TaiKhoanDAL dal_Crud = new TaiKhoanDAL();
+
+
+        // Hàm này DÙNG CHO FRM LOGIN
+        public TaiKhoan DangNhap(string tenTK, string matKhau)
+        {
+            if (string.IsNullOrEmpty(tenTK) || string.IsNullOrEmpty(matKhau))
+            {
+                return null;
+            }
+            // Gọi đúng hàm từ lớp DAL
+            return dal_Login.GetByTenTKAndMatKhau(tenTK, matKhau);
+        }
+
+        // === SỬA LỖI 2: Thêm hàm Đăng Ký (CHO FRM REGISTER) ===
+        public string DangKy(TaiKhoan taiKhoanMoi)
+        {
+            // Logic: Kiểm tra tên tài khoản trùng
+            if (dal_Crud.GetById(taiKhoanMoi.TenTaiKhoan) != null)
+            {
+                return "Tên tài khoản này đã tồn tại!";
+            }
+
+            // Logic: Kiểm tra SĐT trùng (nếu cần)
+            if (dal_Crud.GetBySdt(taiKhoanMoi.SoDienThoai) != null)
+            {
+                return "Số điện thoại này đã được đăng ký!";
+            }
+
+            try
+            {
+                dal_Crud.Add(taiKhoanMoi);
+                return "Đăng ký thành công!";
+            }
+            catch (Exception ex)
+            {
+                return "Lỗi đăng ký: " + ex.Message;
+            }
+        }
+
+        // === SỬA LỖI 3: Thêm hàm GetById (ĐỂ KIỂM TRA TRÙNG) ===
+        public TaiKhoan GetById(string tenTK)
+        {
+            return dal_Crud.GetById(tenTK);
+        }
+    }
+}
